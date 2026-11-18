@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Treasury liquidation replay</title>
+<style>
+body{font:16px system-ui,sans-serif;background:#fbfaf6;color:#172b33;max-width:900px;padding:0 1rem;margin:2rem auto}
+h1{font-size:2.6rem}p{line-height:1.6}input{vertical-align:middle;margin-left:.4rem}
+table{border-collapse:collapse;width:100%}th,td{padding:.6rem;text-align:right;border-bottom:1px solid #cad6d1}
+th:first-child,td:first-child{text-align:left}thead{background:#173744;color:white}a{color:#176876}
+</style>
+<h1>Treasury liquidation replay</h1>
+<p>Synthetic funding shock of 0.08, 8× opening leverage, 30-unit dealer capacity.</p>
+<label for="round">Round</label> <input id="round" type="range" min="0" value="0">
+<output id="round-label" for="round"></output>
+<p id="status" aria-live="polite"></p>
+<table><thead><tr><th>Agent</th><th>Inventory</th><th>Cash</th><th>Repo payable</th><th>Repo claim</th><th>Equity</th></tr></thead><tbody id="rows"></tbody></table>
+<p><a href="ledger.csv" download>Download the complete ledger</a></p>
+<img src="cascade.svg" width="760" style="max-width:100%" alt="Cascade probability over leverage and dealer inventory capacity">
+<script>
+const ledger=@LEDGER@;
+const slider=document.getElementById("round");
+slider.max=ledger.at(-1).step;
+const show=()=>{
+  const r=Number(slider.value);
+  const rows=ledger.filter(row=>row.step===r);
+  document.getElementById("round-label").textContent=r===0?"Initial funding shock":"Round "+r;
+  const {price,round_sales,dealer_buys,outside_buys}=rows[0];
+  document.getElementById("status").textContent=
+    "Asset price $"+price.toFixed(4)+" · "+round_sales.toFixed(2)+
+    " units sold · dealer "+dealer_buys.toFixed(2)+" · outside "+outside_buys.toFixed(2);
+  document.getElementById("rows").replaceChildren(...rows.map(row=>{
+    const tr=document.createElement("tr");
+    for (const key of ["agent","units","cash","repo_payable","repo_receivable","equity"]) {
+      const td=document.createElement("td");
+      td.textContent=typeof row[key]==="number"?row[key].toFixed(2):row[key];
+      tr.append(td);
+    }
+    return tr;
+  }));
+};
+slider.addEventListener("input",show);
+show();
+</script>
+</html>
